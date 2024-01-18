@@ -1,7 +1,11 @@
 ds-test/=lib/forge-std/lib/ds-test/src/
 forge-std/=lib/forge-std/src/
 @openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
+@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
+@openzeppelin-upgradeable/interfaces/=lib/openzeppelin-contracts-upgradeable/contracts/interfaces/
 @aave/core-v3/contracts/=lib/aave-v3-core/contracts/
+@aave-v3-core/interfaces/=lib/aave-v3-core/contracts/interfaces/
+@aave-v3-periphery/rewards/interfaces/=lib/aave-v3-periphery/contracts/rewards/interfaces/
 @uniswap/v3-periphery/contracts/=lib/v3-periphery/contracts/
 @uniswap/v3-core/contracts/=lib/v3-core/contracts/
 @chainlink/contracts-ccip/src/=node_modules/@chainlink/contracts-ccip/src/

@@ -1,19 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IGhoToken} from "./interfaces/IGhoToken.sol";
 import {IFacilitator} from "./interfaces/IFacilitator.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 
 // Basic Stable Facilitator
 // It swaps GHO:USDC, 1:1, while 0 < level < capacity
-contract FacilitatorStable is IFacilitator, Ownable {
-    IGhoToken public immutable GHO_TOKEN;
-    IERC20 public immutable USDC_TOKEN;
+contract FacilitatorStable is Initializable, IFacilitator {
+    IGhoToken public GHO_TOKEN;
+    IERC20 public USDC_TOKEN;
     
     IFacilitator registry;
+    
+    address public admin;
     
     // fee paid on every mint/burn
     uint256 public facilitatorFee;
@@ -31,12 +33,20 @@ contract FacilitatorStable is IFacilitator, Ownable {
         uint256 amount,
         bytes data
     );
-
+/*
     /// initialize admin and token interfaces
-    constructor (address _admin, address _gho, address _usdc) Ownable(_admin) {
+    constructor (address _admin, address _gho, address _usdc) {
+        admin = _admin;
         GHO_TOKEN = IGhoToken(_gho);
         USDC_TOKEN = IERC20(_usdc);
         registry = IFacilitator(msg.sender);
+    }
+*/    
+    function initialize(address _admin, address _gho, address _usdc) initializer public {
+        admin = _admin;
+        GHO_TOKEN = IGhoToken(_gho);
+        USDC_TOKEN = IERC20(_usdc);
+        registry = IFacilitator(msg.sender);        
     }
     
     ////////////////////////////////////////////
@@ -94,26 +104,35 @@ contract FacilitatorStable is IFacilitator, Ownable {
     //        ADMIN FUNCTIONS
     ///////////////////////////////////////////
     
-    function setFacilitatorFee(uint newFee) public onlyOwner {
+    function setFacilitatorFee(uint newFee) public onlyAdmin {
         facilitatorFee = newFee;
     }
     
-    function setCapacity(uint newCapacity) public onlyOwner {
+    function setCapacity(uint newCapacity) public onlyAdmin {
         (uint currentCapacity, uint level) = GHO_TOKEN.getFacilitatorBucket(address(this));
         if (currentCapacity < newCapacity) {
+            // this amount of GHO must be previously sent to the contract
             GHO_TOKEN.approve(address(registry), newCapacity - currentCapacity);
+        } else {
+            USDC_TOKEN.transfer(address(registry), level - newCapacity);
         }
         registry.setCapacity(newCapacity);
     }
-    
-    function removeFacilitator(uint amount) public onlyOwner {
-        if (amount != 0) {
-            GHO_TOKEN.approve(address(registry), amount);
-        }
-        registry.removeFacilitator(amount);
-    }
 
-    function rescueGHO(address recipient, uint amount) public onlyOwner {
+    function withdrawFees(address recipient, uint amount) public onlyAdmin {
         GHO_TOKEN.transfer(recipient, amount);
+    }
+    
+    function rescueToken(address token, address recipient, uint amount) public onlyAdmin {
+        IERC20(token).transfer(recipient, amount);
+    }
+    
+    function setNewAdmin(address _admin) public onlyAdmin {
+        admin = _admin;
+    }
+    
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "Forbidden");
+        _;
     }
 }

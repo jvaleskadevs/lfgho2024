@@ -11,14 +11,16 @@ contract FacilitatorRegistryScript is Script {
     function setUp() public {}
 
     function run() public {
-        uint newFacilitatorFee = 420;
+        uint facilitatorFee = 420;
+        address vaultAddr = 0x7Fdc932b7a717cBDc7979DBAB68061b20503243F;
         vm.startBroadcast(vm.envUint("PK"));
         
         FacilitatorRegistry registry = new FacilitatorRegistry(
             CUSTOM_GHO,
             USDC_SEPOLIA,
+            vaultAddr,
             CCIP_ROUTER_SEPOLIA,
-            newFacilitatorFee
+            facilitatorFee
         );
         
         setPermissions(address(registry));
@@ -45,4 +47,7 @@ contract FacilitatorRegistryScript is Script {
 // Deployments
 //
 // Sepolia: 0xD2d2A9CFa33c0141700F2c0D82f257a0147f6BD7 (failed ccip message, encodePacked/decode)
-// Sepolia: 0x9B340aDC9AB242bf4763B798D08e8455778cB4ac
+// Sepolia: 0x9B340aDC9AB242bf4763B798D08e8455778cB4ac (working like a charm, deprecated)
+// Sepolia: 0x02fBBa9BF8785400d8113Dda49A3F827927D235c (working like a charm, deprecated)
+// Sepolia: 0x1f632B568bda01f4eD8A2849146cc97891512e6A (missing vault approval, lol)
+// Sepolia: 0x2D97F21678d075C89ec0d253908d53F5A85802Ea

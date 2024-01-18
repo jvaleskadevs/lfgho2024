@@ -23,6 +23,11 @@ contract ConfigCustomGHOScript is Script {
             deployer
         );
         
+        gho.grantRole(
+            0xc7f115822aabac0cd6b9d21b08c0c63819451a58157aecad689d1b5674fad408, 
+            deployer
+        );
+        
         gho.addFacilitator(deployer, "freegholol", type(uint128).max);
         
         gho.mint(deployer, 42069 * 10e18);

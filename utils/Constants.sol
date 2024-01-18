@@ -51,4 +51,6 @@ pragma solidity ^0.8.22;
     //  OPTIMISM GOERLI  //
     ///////////////////////      
     address constant USDC_OPT_GOERLI = 0xe05606174bac4A6364B31bd0eCA4bf4dD368f8C6;
+    address constant FLAMINGHO_OPT_GOERLI = 0x2B7dfEd198948d9d6A2B60BF79C6E2847fE1CDae;
+    address constant CCIP_ROUTER_OPT_GOERLI = 0xcc5a0B910D9E9504A7561934bed294c51285a78D;
 

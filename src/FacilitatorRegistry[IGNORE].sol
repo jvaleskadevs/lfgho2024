@@ -5,20 +5,11 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Create2.sol";
 import {IGhoToken} from "./interfaces/IGhoToken.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IATokenVault} from "./interfaces/IATokenVault.sol";
 import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
 import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
+//import {FacilitatorStable} from "./FacilitatorStable.sol"; // TODO: use proxy
 
-
-// FacilitatorRegistry
-// Deploy facilitators and manage their capacity
-// 1 GHO == 1 capacity, it ensures market neutrality
-// earn fees, capture USDC on decreasing capacity,
-// then, send the USDC to a Vault, and
-// the Vault supplies it to the AAVE protocol.
-// generated yield can be used to fund public goods 
-// ah, it also can deploy Facilitators on other chains!
-// need FACILITATOR ROLES on GHO
+// need FACILITATOR ROLES OR ADMIN
 // owner should be a DAO
 contract FacilitatorRegistry is Ownable {
     error InitializationFailed();
@@ -29,11 +20,20 @@ contract FacilitatorRegistry is Ownable {
     
     IGhoToken public immutable IGHO;        
     address public immutable USDC;
-    IATokenVault public vault;
-   
+/*    
+    // facilitator => capacity
+    mapping (address => uint) public capacityOf;   
+*/    
     // total amount of GHO locked in this contract
     uint256 public totalSupply; 
+/*
+    // Implementation for the FacilitatorStable
+    address public facilitatorStableImpl; // TODO use proxy
 
+    // FacilitatorMultichain creation code hash, used by Create2
+    bytes32 immutable FM_HASH = 
+        0x5c148315112e20a140c861f62da9d0d47c41ca1ff60aab7bdf46c88e448cb355;
+*/
     // every new Facilitator must pay this fee
     uint256 public facilitatorFee; 
     
@@ -41,6 +41,11 @@ contract FacilitatorRegistry is Ownable {
     address immutable CCIP_ROUTER;
     // destination chain => multichainListener
     mapping (uint => address) public multichainListeners;
+/*
+    // ccip mainnet/sepolia chain selector, this chain
+    //uint64 CHAIN_SELECTOR = 5009297550715157269; // mainnet
+    uint64 immutable CHAIN_SELECTOR = 16015286601757825753; // sepolia
+*/
 
     ////////////////////////////////////////////
     //        EVENTS
@@ -52,16 +57,13 @@ contract FacilitatorRegistry is Ownable {
     event CapacityChanged(address indexed facilitator, uint oldCapacity, uint newCapacity);
     
     // init interfaces and variables
-    constructor(address _gho, address _usdc, address _vault, address _router, uint256 _fee) 
+    constructor(address _gho, address _usdc, address _router, uint256 _fee) 
         Ownable(msg.sender) {
             IGHO = IGhoToken(_gho);
-            vault = IATokenVault(_vault);
+            USDC = _usdc;
             CCIP_ROUTER = _router;
             facilitatorFee = _fee;
-            // opt goerli MultichainListener, will receive CCIP messages 
-            multichainListeners[2664363617261496610] = 0x9B340aDC9AB242bf4763B798D08e8455778cB4ac;
-            // max allowance for the vault
-            IERC20(_usdc).approve(_vault, type(uint).max); 
+            //multichainListeners[2664363617261496610] = ; // opt goerli /// TODO TODO TODO 
     }
     
     ////////////////////////////////////////////
@@ -90,13 +92,13 @@ contract FacilitatorRegistry is Ownable {
         uint64 destinationChainSelector,
         bytes memory initData
     ) public payable returns (address facilitator) {   
-        // increase the total amount of GHO locked in this contract
+        // increase the total amount of GHO in this contract
         totalSupply += capacity;
         // transfer the GHO (amount=capacity) from the caller
         // it ensures market neutrality of the Facilitator
         IGHO.transferFrom(msg.sender, address(this), capacity); // TODO: send to external treasury
         // transfer an small amount of GHO as fee from the caller
-        IGHO.transferFrom(msg.sender, owner(), facilitatorFee);
+        IGHO.transferFrom(msg.sender, address(this), facilitatorFee); // TODO: send to other address
         
         if (destinationChainSelector != 0) {
             // create a new FacilitatorMultichain in the destination chain trough CCIP
@@ -111,7 +113,56 @@ contract FacilitatorRegistry is Ownable {
         emit NewFacilitator(facilitator, label, capacity);     
         // emit with ZeroAddress for a multichain facilitator
     }
-
+    
+ /*   
+    
+    function registerFacilitator(
+        string memory label,
+        uint128 capacity,
+        address admin,
+        uint64 destinationChainSelector,
+        address customAddress
+    ) public payable returns (address facilitator) {
+        // aassign custom Facilitator address or ZeroAddress
+        facilitator = customAddress;
+        // increase the total amount of GHO in this contract
+        totalSupply += capacity;
+        // transfer the GHO (amount=capacity) from the caller
+        // it ensures market neutrality of the Facilitator
+        IGHO.transferFrom(msg.sender, address(this), capacity); // TODO: send to external treasury
+        // transfer an small amount of GHO as fee from the caller
+        IGHO.transferFrom(msg.sender, address(this), facilitatorFee); // TODO: send to other address
+        // check if the Facilitator exists, if not creates one
+        if (facilitator == address(0)) {
+            if (destinationChainSelector != 0 && destinationChainSelector != CHAIN_SELECTOR) {
+                // a salt to help us computing a fixed address with Create2
+                bytes32 salt = keccak256(abi.encodePacked(label, admin));
+                // create a new FacilitatorMultichain in the destination chain trough CCIP
+                _deployFacilitatorMultichain(capacity, admin, destinationChainSelector, salt);
+                // compute the contract address of the deployed FacilitatorMultichain  
+                facilitator = Create2.computeAddress(
+                    salt, 
+                    FM_HASH, //keccak256(abi.encodePacked(type(FacilitatorMultichain).creationCode)),
+                    multichainListener // TODO: change to CCIP transmisoor: 0x7fEbf5F84a29CEF69CF0b1357C967B4Dd93A491f
+                );
+            } else {
+                // create a new FacilitatorStable, GHO/USDC, 1:1
+                facilitator = address(
+                    new FacilitatorStable(admin, address(IGHO), USDC)
+                );
+            }  
+        }
+        // it will revert if the Facilitator has already been registered
+        require(capacityOf[facilitator] == 0, "AlreadyRegistered");
+        // assign the capacity to the facilitator
+        capacityOf[facilitator] = capacity;
+        // add the new Facilitator to the GHO contract
+        IGHO.addFacilitator(facilitator, label, capacity);       
+                
+        emit NewFacilitator(facilitator, label, capacity);  
+    }
+*/
+    
     ////////////////////////////////////////////
     //        INTERNAL FUNCTIONS
     /////////////////////////////////////////// 
@@ -156,7 +207,32 @@ contract FacilitatorRegistry is Ownable {
         
         bytes32 messageId = router.ccipSend{value: fees}(destinationChainSelector, message);    
     }
-  
+ 
+/*    
+    // Send a message to the MultichainListener with CCIP
+    // it will create a new Facilitator in the destinatation chain
+    function _deployFacilitatorMultichain(
+        uint128 capacity, 
+        address admin, 
+        uint64 destinationChainSelector,
+        bytes32 salt
+    ) internal {
+        Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
+            receiver: abi.encode(multichainListeners[destinationChainSelector]),
+            data: abi.encode(admin, capacity, salt),
+            tokenAmounts: new Client.EVMTokenAmount[](0),
+            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 3000000})),
+            feeToken: address(0)//LINK
+        });
+        
+        IRouterClient router = IRouterClient(CCIP_ROUTER);
+        uint256 fees = router.getFee(destinationChainSelector, message);
+        
+        require(msg.value >= fees, "NotEnoughEth");
+        
+        bytes32 messageId = router.ccipSend{value: fees}(destinationChainSelector, message);
+    }
+ */   
     function _creationCode(
         address implementation_,
         uint256 chainId_,
@@ -176,7 +252,9 @@ contract FacilitatorRegistry is Ownable {
         // increase total GHO locked in the contract 
         totalSupply += delta;      
         // more capacity, more GHO, deposit
-        IGHO.transferFrom(facilitator, address(this), delta); // TODO: send to external treasury
+        IGHO.transferFrom(facilitator, address(this), delta);
+        // assign the new capacity to the facilitator
+        //capacityOf[facilitator] = newCapacity;
         // set new capacity into the GHO contract
         IGHO.setFacilitatorBucketCapacity(facilitator, uint128(newCapacity));
         
@@ -184,30 +262,30 @@ contract FacilitatorRegistry is Ownable {
     }    
 
     function _decreaseCapacityOf(address facilitator, uint current, uint newCapacity, uint level) internal {
-        // calculate delta, difference between old and new capacity
+        // calculate delta, difference between old and new capacities
         uint delta = current - newCapacity;
         // decrease total GHO locked in the contract 
-        totalSupply -= delta;
+        totalSupply -= delta;                
+        // assign the new capacity to the facilitator
+        //capacityOf[facilitator] = newCapacity;
         
         if (newCapacity == 0) {
             // remove the facilitator in the GHO contract
             IGHO.removeFacilitator(facilitator);
         } else {
             // set new capacity in the GHO contract
-            IGHO.setFacilitatorBucketCapacity(facilitator, uint128(newCapacity)); // TODO: send to external treasury       
+            IGHO.setFacilitatorBucketCapacity(facilitator, uint128(newCapacity));        
         }
         
-        if (current > level && level > newCapacity) {
+        // less capacity, less GHO, withdraw 
+        if (level > newCapacity) {
             // cannot withdraw full delta until decrease level
-            // so, decreasing it by capturing the remaining in USDC
+            // so, decreasing it by capturing remaining in USDC
             // it helps with diversification, USDC and GHO reserves
-            // it sends the USDC to a Vault supplying it to the AAVE protocol
-            vault.deposit(level - newCapacity, owner());
-            // other option:
-            //IERC20(USDC).transferFrom(facilitator, address(this), level - newCapacity); 
+            IERC20(USDC).transferFrom(facilitator, address(this), level - newCapacity);
         }
         // less capacity, less GHO, withdraw 
-        // need to be the last call to avoid reentrancy
+        // last call to avoid reentrancy
         IGHO.transfer(facilitator, delta);
         
         emit CapacityChanged(facilitator, current, newCapacity);
@@ -221,7 +299,7 @@ contract FacilitatorRegistry is Ownable {
     function setCapacity(uint newCapacity) public onlyFacilitator {
         (uint currentCapacity, uint level) = bucketOf(msg.sender);
         
-        require(newCapacity != currentCapacity, "NothingChanged");
+        require(newCapacity != 0 && newCapacity != currentCapacity, "InvalidCapacity");
         
         if (newCapacity < currentCapacity) {
             _decreaseCapacityOf(msg.sender, currentCapacity, newCapacity, level);
@@ -237,7 +315,11 @@ contract FacilitatorRegistry is Ownable {
     function setFacilitatorFee(uint _facilitatorFee) public onlyOwner {
         facilitatorFee = _facilitatorFee;
     }
-  
+/*    
+    function setFacilitatorStableImpl(address _facilitatorStableImpl) public onlyOwner {
+        facilitatorStableImpl = _facilitatorStableImpl;
+    }
+*/    
     function setMultichainListener(address _multichainListener, uint _destinationChain) public onlyOwner {
         multichainListeners[_destinationChain] = _multichainListener;
     }
@@ -246,7 +328,7 @@ contract FacilitatorRegistry is Ownable {
     //        VIEW FUNCTIONS
     ///////////////////////////////////////////
     
-    function bucketOf(address sender) public view returns (uint capacity, uint level) {
-        (capacity, level) = IGHO.getFacilitatorBucket(sender);
+    function bucketOf(address sender) public returns (uint capacity, uint level) {
+        (capacity, level) = IGHO.getFacilitatorBucket(msg.sender);
     }
 }
