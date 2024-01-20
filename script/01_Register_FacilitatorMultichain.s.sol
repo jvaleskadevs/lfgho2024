@@ -83,6 +83,6 @@ contract RegisterFacilitatorMultichainScript is Script {
 // FacilitatorMultichain deployed to: 0xBB149C05739F5017A46F49FFB24F2961c7dc3109, to the Optimism Goerli chain from the Sepolia chain
 // FacilitatorMultichain deployed to: 0x36f63774335c7a39484f2cd466b2832c52e9c507, to the Optimism Goerli chain from the Sepolia chain
 // FacilitatorMultichain deployed to: 0x7a7cceff68b87ebe0fc981e58165791730485f76, to the Optimism Goerli chain from the Sepolia chain
-// FacilitatorMultichain deployed to: , to the Optimism Goerli chain from the Sepolia chain
+// FacilitatorMultichain deployed to: 0x12fc262bd99cb3f8a1cedb58bf9a760eea3427bc, to the Optimism Goerli chain from the Sepolia chain
 
 

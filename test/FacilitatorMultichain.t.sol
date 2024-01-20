@@ -11,7 +11,7 @@ import {USDC_OPT_GOERLI, FLAMINGHO_OPT_GOERLI } from "../utils/Constants.sol";
 
 contract FacilitatorMultichainTest is Test {
     FacilitatorMultichain facilitator;
-    address public facilitatorAddr = 0x36F63774335C7a39484f2cD466b2832C52e9c507; // opt goerli
+    address public facilitatorAddr = 0x12fC262Bd99Cb3f8A1cEdb58bf9A760Eea3427bC; // opt goerli
     
     address deployer = 0xaa9d8FBaEC1704f3BFC672646A21fA67F28CCa3a;
     

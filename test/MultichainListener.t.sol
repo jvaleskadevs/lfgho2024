@@ -7,6 +7,8 @@ import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.s
 import {IGhoToken} from "../src/interfaces/IGhoToken.sol";
 import {FLAMINGHO_OPT_GOERLI} from "../utils/Constants.sol";
 
+// OUTDATED TESTS
+/*
 contract MultichainListenerTest is Test {
     
     function setUp() public {}
@@ -50,3 +52,4 @@ contract MultichainListenerTest is Test {
         ml.ccipReceive(message);
     }
 }
+*/

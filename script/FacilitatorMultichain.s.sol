@@ -32,4 +32,4 @@ contract FacilitatorMultichainScript is Script {
 //  Optimism Goerli ->  (from MultichainListener) (proxy)
 //  Optimism Goerli -> 0x6721c3439D98B99EB7580c7F27A977AE9f49dc38 (from this script) (impl)
 //  Optimism Goerli -> 0x7a7cceff68b87ebe0fc981e58165791730485f76 (from MultichainListener) (proxy)
-//  Optimism Goerli ->  (from MultichainListener) (proxy)
+//  Optimism Goerli -> 0x12fc262bd99cb3f8a1cedb58bf9a760eea3427bc (from MultichainListener) (proxy)

@@ -1,0 +1,5 @@
+cp lib/IERC20Upgradeable.sol lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol
+cp lib/IERC20MetadataUpgradeable.sol lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/IERC20MetadataUpgradeable.sol
+cp lib/IERC4626Upgradeable.sol lib/openzeppelin-contracts-upgradeable/contracts/interfaces/IERC4626Upgradeable.sol
+cp lib/IERC20Upgradeable.sol lib/openzeppelin-contracts-upgradeable/contracts/interfaces/IERC20Upgradeable.sol
+

@@ -23,6 +23,6 @@ contract FacilitatorStableScript is Script {
 
 // Deployments:
 // 
-//  Sepolia: 0x92cd301eDc0F47900c4E5B3ED8668fd4B436C9C6
-//  Sepolia: 0x5D3156cf2CB74F98BD55505680276A05d6D6F633
-//  Sepolia: 0xa7f696Cd0aD2EDc564eA249D014545278B9fa8Eb
+//  Sepolia: 0x92cd301eDc0F47900c4E5B3ED8668fd4B436C9C6 (impl)
+//  Sepolia: 0x5D3156cf2CB74F98BD55505680276A05d6D6F633 (impl)
+//  Sepolia: 0xa7f696Cd0aD2EDc564eA249D014545278B9fa8Eb (impl)

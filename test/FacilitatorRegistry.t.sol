@@ -14,6 +14,7 @@ import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.s
 import {GHO, USDC, CCIP_ROUTER_SEPOLIA, GHO_ADMIN, USDC_OWNER} from "../utils/Constants.sol";
 import {Profitator} from "../src/Profitator.sol";
 
+// OUTDATED TESTS
 /*
 contract FacilitatorRegistryTest is Test {
     FacilitatorRegistry registry;
@@ -221,7 +222,6 @@ contract FacilitatorRegistryTest is Test {
         assertEq(IGHO.balanceOf(address(this)), 42420 * 10e6);       
     }
     
-    
     // utils
     function printCreationCode() public {
         console2.log(uint(keccak256(abi.encodePacked(type(FacilitatorMultichain).creationCode))));
@@ -230,4 +230,4 @@ contract FacilitatorRegistryTest is Test {
     }
 
 }
-    */
+*/
