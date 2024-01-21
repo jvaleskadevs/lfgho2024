@@ -1,11 +1,11 @@
 
-## FlaminGHO
+## FlaminGHO 🦩
 
-*let's flamingho!*
+*let's flamingho!* 🦩🦩🦩
 
 **FlaminGHO  (pronounced flamingo) is a multichain permissionless facilitator protocol that generates yield built on top of the GHO token**
 
-**FlaminGHO was built in the LFGHO 2024 hackathon organized by EthGlobal and sponsored by AAVE, Chainlink and Family (Connectkit)**
+FlaminGHO was built in the LFGHO 2024 hackathon organized by EthGlobal and sponsored by AAVE, Chainlink and Family (Connectkit)
 
 
 ## IMPORTANT (TEST ONLY - SKIP IN PRODUCTION)
@@ -19,7 +19,7 @@ Due to the nature of the event and the project requirements, some considerations
  - There are some contracts that need to know each other like the `FacilitatorRegistry` and the `MultichainListener`, the latter includes an extra setter function to set the registry.
  - There are several pieces of code that need refactorization or are not 100% safe, please skip the use of this repository in production. It is a hackathon project.
 
-## Flamingho protocol
+## Flamingho protocol 🦩
 
 ![schema](https://github.com/jvaleskadevs/lfgho2024/blob/main/flamingho_schema.png?raw=true)
 
@@ -43,7 +43,7 @@ When a facilitator decreases its capacity under the bucket level the equivalent 
 
 ### Captured USDC,... yield
 
-Captured USDC is sent to the `Vault` (deployed from a clone of this repository: (Aave-vault)[https://github.com/aave/Aave-Vault/tree/main]),  and then sent to the AAVE protocol to generate yield. This yield could be used for funding public goods.
+Captured USDC is sent to the `Vault` (deployed from a clone of this repository: [Aave-Vault](https://github.com/aave/Aave-Vault/tree/main),  and then sent to the AAVE protocol to generate yield. This yield could be used for funding public goods.
 
 In L2s, captured USDC is currently locked in the protocol since there is no AAVE protocol. (space to exploration)
 
