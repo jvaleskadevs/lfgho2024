@@ -19,7 +19,7 @@ import {USDC_OPT_GOERLI, FLAMINGHO_OPT_GOERLI } from "../utils/Constants.sol";
 */
 contract FacilitatorMultichainScript is Script {
     FacilitatorMultichain facilitator;
-    address public facilitatorAddr = 0x7a7CceFF68B87EbE0fc981E58165791730485f76; // opt goerli
+    address public facilitatorAddr = 0x12fC262Bd99Cb3f8A1cEdb58bf9A760Eea3427bC; // opt goerli
     
     IERC20 IUSDC;
     IGhoToken fGHO;

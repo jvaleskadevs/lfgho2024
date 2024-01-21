@@ -19,10 +19,11 @@ contract BucketManagerTest is Test {
     function test_BucketManager() public {
         address facilitator = 0x6dec820eD9007602e7EfA4BC6A668FdCE0Fd8Ad5;
         uint capacity = 42000;
-        uint delta = 420;
+        uint delta = 420;        
         
         address admin = 0xaa9d8FBaEC1704f3BFC672646A21fA67F28CCa3a;
         vm.startPrank(admin);
+        
         fGHO.grantRole(
             0x5e20732f79076148980e17b6ce9f22756f85058fe2765420ed48a504bef5a8bc, 
             admin
@@ -31,15 +32,19 @@ contract BucketManagerTest is Test {
             0xc7f115822aabac0cd6b9d21b08c0c63819451a58157aecad689d1b5674fad408, 
             admin
         );
+        /* will revert, facilitor exist
         fGHO.addFacilitator(admin, "admin", uint128(delta));
-        fGHO.addFacilitator(facilitator, "facilitator", uint128(capacity));
         fGHO.setFacilitatorBucketCapacity(admin, uint128(delta));
-        fGHO.mint(facilitator, delta);
-        vm.stopPrank();
+        */
         
+        fGHO.addFacilitator(facilitator, "facilitator", uint128(capacity));
+        
+        fGHO.mint(facilitator, delta);
+        
+        vm.stopPrank();
         vm.startPrank(facilitator);  
         
-        (uint currentCapacity, uint level) = bm.bucketOf(facilitator);
+        (uint currentCapacity, ) = bm.bucketOf(facilitator);
         
         fGHO.approve(address(bm), delta);
         
@@ -61,3 +66,4 @@ contract BucketManagerTest is Test {
         assertEq(fGHO.balanceOf(address(bm)), 0);
     }
 }
+// forge test --match-path test/BucketManager.t.sol --fork-url $OPTIMISM_GOERLI_URL  -vvvv

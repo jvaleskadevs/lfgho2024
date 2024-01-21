@@ -11,14 +11,12 @@ import {IGhoToken} from "../src/interfaces/IGhoToken.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
 import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
-import {GHO, USDC, CCIP_ROUTER_SEPOLIA, GHO_ADMIN, USDC_OWNER} from "../utils/Constants.sol";
-import {Profitator} from "../src/Profitator.sol";
+import {GHO, CUSTOM_GHO, USDC_SEPOLIA, CCIP_ROUTER_SEPOLIA, USDC_OPT_GOERLI, GHO_ADMIN, USDC_OWNER} from "../utils/Constants.sol";
 
 // OUTDATED TESTS
-/*
+
 contract FacilitatorRegistryTest is Test {
     FacilitatorRegistry registry;
-    Profitator profitator; // used for swap tokens
     address multichainListener;
     
     IGhoToken IGHO;
@@ -26,15 +24,14 @@ contract FacilitatorRegistryTest is Test {
     
     
     function setUp() public {
-        //receiveETH();
-        IGHO = IGhoToken(GHO);
-        IUSDC = IERC20(USDC);
+        //receiveETH(); // 
+        IGHO = IGhoToken(CUSTOM_GHO);
+        IUSDC = IERC20(USDC_SEPOLIA);
         // we need USDC to get GHO
         mintUSDC();
-        //receiveUSDC();
-        
+        //receiveUSDC();        
         // we need GHO to register the facilitator
-        receiveGHO();
+        //receiveGHO();
         
         
         createFacilitatorRegistry(); 
@@ -42,24 +39,40 @@ contract FacilitatorRegistryTest is Test {
     
     function createFacilitatorRegistry() public {
         uint fee = 420; // every new registered facilitator will pay it
-        registry = new FacilitatorRegistry(GHO, USDC, CCIP_ROUTER_SEPOLIA, fee);
+        address vault = 0x7Fdc932b7a717cBDc7979DBAB68061b20503243F;
+        registry = new FacilitatorRegistry(CUSTOM_GHO, USDC_SEPOLIA, vault, CCIP_ROUTER_SEPOLIA, fee);
         
         // the Registry needs some permissions to operate
-        addFacilitatorRoleImpersonate(GHO_ADMIN, address(registry));
+        address admin = 0xaa9d8FBaEC1704f3BFC672646A21fA67F28CCa3a;
+        addFacilitatorRoleImpersonate(admin, address(registry));
         
-        //multichainListener = 0x7E7DA3a8D45349110EeD866047307bD34BE85996;
-        multichainListener = 0x6BA96594e94d5B12F1ef689d5D69E006d056B1Ad;
+        multichainListener = 0x9B340aDC9AB242bf4763B798D08e8455778cB4ac;
         registry.setMultichainListener(multichainListener, 2664363617261496610);
     }
     
     
-    function test_RegisterFacilitator() public {
+    function test_RegisterFacilitatorStable() public {
+        address facilitatorStableImplAddr = 0x4418E27448F6d1c87778543EC7F0A77c27202e75;
         uint128 capacity = 42000;
+        uint fee = registry.facilitatorFee();
         
-        IGHO.approve(address(registry), capacity+registry.facilitatorFee());
+        address admin = 0xaa9d8FBaEC1704f3BFC672646A21fA67F28CCa3a;
+        vm.startPrank(admin);
+        
+        IGHO.approve(address(registry), capacity+fee);
         
         address facilitator = registry.registerFacilitator(
-            "lfgho2024_fs", capacity, address(this), 0, address(0)
+            facilitatorStableImplAddr,
+            capacity,
+            "lfgho2024_fs",
+            admin, 
+            0, // skipping destination chain selector 
+            abi.encodeWithSignature(
+                "initialize(address,address,address)", 
+                admin, 
+                CUSTOM_GHO, 
+                USDC_SEPOLIA
+            )
         );
         
         (uint cap, uint lvl) = registry.bucketOf(facilitator);
@@ -93,32 +106,65 @@ contract FacilitatorRegistryTest is Test {
         (cap, lvl) = registry.bucketOf(facilitator);
         assertEq(cap, 0);
         
-        // register again
+        // register again will fail without change the label
         IGHO.approve(address(registry), capacity+registry.facilitatorFee());
         address newFacilitator = registry.registerFacilitator(
-            "lfgho2024_fs", capacity, address(this), 0, address(facilitator)
+            facilitatorStableImplAddr,
+            capacity,
+            "lfgho2024_fs_1",
+            admin,
+            0, 
+            abi.encodeWithSignature(
+                "initialize(address,address,address)", 
+                admin, 
+                CUSTOM_GHO, 
+                USDC_SEPOLIA
+            )
         );
+        
+        vm.stopPrank();
         
         (cap, lvl) = registry.bucketOf(newFacilitator);
         assertEq(cap, capacity);
-        assertEq(newFacilitator, facilitator);
     }
     
     
     function test_RegisterFacilitatorMultichain() public {
+        address facilitatorMultichainImplAddr = 0x12fC262Bd99Cb3f8A1cEdb58bf9A760Eea3427bC;
         uint128 capacity = 42000;
+        uint fee = registry.facilitatorFee();
         
-        IGHO.approve(address(registry), capacity+registry.facilitatorFee());
+        address ghoHolder = 0xaa9d8FBaEC1704f3BFC672646A21fA67F28CCa3a;
+        vm.startPrank(ghoHolder);
         
-        uint ccip_fees = _simulateCCIPFees();
+        IGHO.approve(address(registry), capacity+fee);
+        
+        bytes memory initData = abi.encodeWithSignature(
+            "initialize(address,uint256,address)", 
+            address(this), 
+            capacity, 
+            USDC_OPT_GOERLI
+        );
+        
+        uint ccip_fees = _simulateCCIPFees(facilitatorMultichainImplAddr, capacity, initData);
         
         address facilitator = registry.registerFacilitator{value: ccip_fees}(
-            "lfgho2024", capacity, address(this), 2664363617261496610, //opt goerli
-            address(0)
+            facilitatorMultichainImplAddr,
+            capacity,
+            "lfgho2024",             
+            address(this), 
+            2664363617261496610, //opt goerli
+            initData
         );
+        
+        vm.stopPrank();
       
+        assertEq(IGHO.balanceOf(address(registry)), capacity);
+      
+        /* outdated
         (uint cap, uint lvl) = registry.bucketOf(facilitator);
         assertEq(cap, capacity);
+        
         
         bytes32 salt = keccak256(
           abi.encodePacked("lfgho2024", address(this))
@@ -131,9 +177,25 @@ contract FacilitatorRegistryTest is Test {
         );
         
         assertEq(facilitator, computedFacilitator);
+        */
     }
     
-    
+    function _simulateCCIPFees(address impl, uint capacity, bytes memory initData) internal returns (uint) {
+        uint64 OPT_GOERLI_DESTINATION_CHAIN = 2664363617261496610;
+        
+        Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
+            receiver: abi.encode(multichainListener),
+            data: abi.encode(impl, capacity, initData),
+            tokenAmounts: new Client.EVMTokenAmount[](0),
+            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 3000000})),
+            feeToken: address(0)//LINK
+        });
+        
+        IRouterClient router = IRouterClient(CCIP_ROUTER_SEPOLIA);
+        return router.getFee(OPT_GOERLI_DESTINATION_CHAIN, message);
+    }
+
+/*  OUTDATED
     function _simulateCCIPFees() internal returns (uint) {    
         uint capacity = 42000;
         address admin = address(this);
@@ -149,22 +211,16 @@ contract FacilitatorRegistryTest is Test {
         
         IRouterClient router = IRouterClient(CCIP_ROUTER_SEPOLIA);
         return router.getFee(2664363617261496610, message);
-    }   
-    
-    
-    receive() external payable {}
-    
-    
-   
-    
-    
+    }
+*/    
+      
     
    // IMPERSONATE
    
    function addFacilitatorImpersonate(address target, address facilitator) public {
         vm.prank(target);
 
-        IGHO.addFacilitator(facilitator, "profitator", 42420 * 10e6);
+        IGHO.addFacilitator(facilitator, "facilitator", 42420 * 10e6);
     }   
     
     function addFacilitatorRoleImpersonate(address target, address recipient) public {
@@ -197,28 +253,28 @@ contract FacilitatorRegistryTest is Test {
     }
     
     function receiveUSDC() public {
-        //uint prevBalance = IERC20(USDC).balanceOf(address(this));
+        //uint prevBalance = IERC20(USDC_SEPOLIA).balanceOf(address(this));
         address target = 0x7eb6c83AB7D8D9B8618c0Ed973cbEF71d1921EF2;
         vm.prank(target);
         
         IUSDC.transfer(address(this), 42420);
-        //assertEq(IERC20(USDC).balanceOf(address(this)), prevBalance + amount); 
+        //assertEq(IERC20(USDC_SEPOLIA).balanceOf(address(this)), prevBalance + amount); 
     }
     
     function mintUSDC() public {
-        //uint prevBalance = IERC20(USDC).balanceOf(address(this));
+        //uint prevBalance = IERC20(USDC_SEPOLIA).balanceOf(address(this));
         vm.prank(USDC_OWNER);
         
-        IGhoToken(USDC).mint(address(this), 10e6 * 10e6); // 10M USDC
-        //assertEq(IERC20(USDC).balanceOf(address(this)), prevBalance + 10e6 * 10e6); 
+        IGhoToken(USDC_SEPOLIA).mint(address(this), 10e6 * 10e6); 
+        //assertEq(IERC20(USDC_SEPOLIA).balanceOf(address(this)), prevBalance + 10e6 * 10e6); 
     }  
-    
+/*    
     function receiveGHO() public {
-        profitator = new Profitator(GHO, USDC);
-        addFacilitatorImpersonate(GHO_ADMIN, address(profitator));
+        facilitator = new FacilitatorStable(GHO, USDC_SEPOLIA);
+        addFacilitatorImpersonate(GHO_ADMIN, address(facilitator));
         
-        IUSDC.approve(address(profitator), 42420 * 10e6);
-        profitator.buy(42420 * 10e6); // get GHO, pay USDC, 1:1
+        IUSDC.approve(address(facilitator), 42420 * 10e6);
+        facilitator.buy(42420 * 10e6); // get GHO, pay USDC, 1:1
         assertEq(IGHO.balanceOf(address(this)), 42420 * 10e6);       
     }
     
@@ -228,6 +284,6 @@ contract FacilitatorRegistryTest is Test {
         // 41649023707695669685951008336737405697760759915946860671833789022829076591445 
         // cast to-hex -> 0x5c148315112e20a140c861f62da9d0d47c41ca1ff60aab7bdf46c88e448cb355    
     }
-
-}
 */
+}
+// forge test --match-path test/FacilitatorRegistry.t.sol --fork-url $SEPOLIA_URL -vvvv

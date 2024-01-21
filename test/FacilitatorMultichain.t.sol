@@ -29,17 +29,14 @@ contract FacilitatorMultichainTest is Test {
     
     function test_Buy_and_Sell() public {
         uint amount = 42000;
-        uint fee = facilitator.facilitatorFee();
-        
+        uint fee = facilitator.facilitatorFee();        
 
         IUSDC.approve(facilitatorAddr, amount+fee);
 
         facilitator.buy(amount);
         
-        assertEq(fGHO.balanceOf(address(this)), 42000);
-        
-        assertEq(IUSDC.balanceOf(facilitatorAddr), amount+fee);       
-        assertEq(facilitator.checkMintBucket(1), false); 
+        assertEq(fGHO.balanceOf(address(this)), 42000);        
+        assertEq(IUSDC.balanceOf(facilitatorAddr), amount+fee);
         
         _sell(amount, fee);
     }
@@ -51,7 +48,6 @@ contract FacilitatorMultichainTest is Test {
         facilitator.sell(amount);
         
         assertEq(fGHO.balanceOf(address(this)), 0);
-        assertEq(facilitator.checkBurnBucket(1), false);
         assertEq(IUSDC.balanceOf(facilitatorAddr), fee*2);
     }
 

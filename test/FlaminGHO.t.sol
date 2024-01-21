@@ -31,3 +31,4 @@ contract FlaminGHOTest is Test {
         assertEq(fGHO.balanceOf(address(this)), 0);
     } 
 }
+// forge test --match-path test/FlaminGHO.t.sol --fork-url $OPTIMISM_GOERLI_URL  -vvvvv
